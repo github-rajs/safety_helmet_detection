@@ -118,4 +118,4 @@ def stream_vid(capture_index):
 
 
 capture_index='M:/CV/ACC_POC/videos/4.mp4'
-stream_vid(capture_index)
+stream_vid(0)
