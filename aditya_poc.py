@@ -4,16 +4,29 @@ import cv2
 import time
 from time import time
 from ultralytics import YOLO
+import mysql.connector
+import datetime
+import base64
 
 from supervision.draw.color import ColorPalette,Color
 from supervision.tools.detections import Detections, BoxAnnotator
 
 import pyglet #for sound alert
 
+# database connection
+db = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="meonly",
+  database="helmetdetectiondb"
+)
+
+cursor = db.cursor()
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print("Using Device: ", device)
 
-model = YOLO("M:/CV/ACC_POC/weights/yolo8n_160epochs.pt")  # load a pretrained YOLOv8n model
+model = YOLO("C:/Users/admin/Downloads/AdityaPOC/safety_helmet_detection/weights/yolo8n_160epochs.pt")    # load a pretrained YOLOv8n model
 model.fuse()
 CLASS_NAMES_DICT = model.model.names
 
@@ -59,7 +72,7 @@ def plot_bboxes(results,frame,color_code):
 
 def sound_alert(frame):
         saved_nohelmetimages_counter=1
-        music_voice = pyglet.resource.media('beep_alert_ok.mp3')
+        music_voice = pyglet.resource.media('C:/Users/admin/Downloads/AdityaPOC/safety_helmet_detection/beep_alert_ok.mp3')
         music_voice.play()
         cv2.imwrite('Saved_NoHelmet/'+str(saved_nohelmetimages_counter)+'.jpg',frame)
 
@@ -109,6 +122,14 @@ def stream_vid(capture_index):
         if class_id == 1:
             frame =  plot_bboxes(results, frame,'red')
             cv2.putText(frame, "Warning!", (50,300), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 4)
+            image_encode = cv2.imencode('.jpg', frame)[1].tostring()
+            ct = datetime.datetime.now()
+            sql = "INSERT INTO no_helmet_log (timestamp,detected) VALUES (%s,%s)"
+            val = (ct,image_encode)
+            cursor.execute(sql,val)
+            db.commit()
+
+
         else:
             frame =  plot_bboxes(results, frame,'green')
 
@@ -124,5 +145,5 @@ def stream_vid(capture_index):
     cap.release()
     cv2.destroyAllWindows()
 
-capture_index='M:/CV/ACC_POC/videos/2.mp4'
-stream_vid(0)
+capture_index='C:/Users/admin/Downloads/AdityaPOC/safety_helmet_detection/videos/2.mp4'
+stream_vid(capture_index)
